@@ -1,12 +1,18 @@
 #include <stdio.h>
 
+#include "Types.h"
+#include "Allocator.h"
+#include "Tokens.h"
+
+typedef struct Line Line;
+
 struct Line {
-	struct Token *first_token;
-	struct Line *prev_line;
-	struct Line *next_line;
+	Token *first_token;
+	Line *prev_line;
+	Line *next_line;
 };
 
-struct Line *lines__from_document(struct Allocator *allocator, FILE *file, unsigned int first_line, unsigned int line_count);
+struct Line *lines__from_document(Allocator *allocator, FILE *file, usize first_line, usize line_count);
 
 /// Joins the right line into the left line and returns the left line
 struct Line *lines__join(struct Allocator *allocator, struct Line *left, struct Line *right);

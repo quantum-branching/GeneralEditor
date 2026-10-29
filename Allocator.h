@@ -1,5 +1,7 @@
 #include <stdint.h>
 
+typedef struct Allocator Allocator;
+
 struct Allocator {
 	void (*free)(struct Allocator *self, void *memory, uintptr_t amount);
 	void *(*alloc)(struct Allocator *self, uintptr_t amount);
@@ -8,9 +10,9 @@ struct Allocator {
 	uintptr_t alloc_end;
 };
 
-// ==========================
-//   Allocator Constructors
-// ==========================
+// ==================================================
+//               Allocator Constructors
+// ==================================================
 
 struct Allocator arena__allocator__new(uintptr_t size);
 
@@ -18,15 +20,15 @@ struct Allocator malloc__new();
 
 struct Allocator stack__allocator__new(uintptr_t size);
 
-// ===================
-//   Frees Allocator
-// ===================
+// ==================================================
+//                  Frees Allocator
+// ==================================================
 
 void free_allocator(struct Allocator *allocator);
 
-// ============
-//   Wrappers
-// ============
+// ==================================================
+//                      Wrappers
+// ==================================================
 
 void allocator__free(struct Allocator *self, void *memory, uintptr_t amount);
 
