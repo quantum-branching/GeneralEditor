@@ -1,4 +1,5 @@
 #include <stdio.h>
+#include <sys/ioctl.h>
 
 #include "Termios.c"
 #include "Input.h"
@@ -7,7 +8,7 @@
 
 // #define DEBUG
 
-const int MAX_ROWS = 75;
+int MAX_ROWS = 75;
 
 int row = 0;
 int column = 0;
@@ -84,8 +85,15 @@ int main(int argc, char **argv) {
 	Render__blank_screen();
 
 	char input[10];
-
 	buffer = malloc(512);
+
+	struct winsize w;
+	if (ioctl(STDOUT_FILENO, TIOCGWINSZ, &w) == -1) {
+		perror("ioctl");
+		return 1;
+	}
+
+	MAX_ROWS = w.ws_row - 3;
 
 	if(argc > 1) {
 		file_size = File__get_size(argv[1]);
