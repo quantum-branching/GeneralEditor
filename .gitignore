@@ -1,1 +1,5 @@
 *.txt
+
+# Removes Executables
+*.x86_64
+*.exe
