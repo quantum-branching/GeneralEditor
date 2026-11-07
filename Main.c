@@ -1,63 +1,68 @@
-#include <termios.h>
 #include <stdio.h>
-#include <unistd.h>
 
+#include "Termios.c"
 #include "Input.h"
 #include "Render.c"
+#include "File.c"
 
-#define DEBUG
+// #define DEBUG
 
-struct termios original;
+const int MAX_ROWS = 75;
 
-void enable_raw_mode() {
-    struct termios raw;
+int row = 0;
+int column = 0;
 
-    tcgetattr(STDIN_FILENO, &original);
+char *working_file = NULL;
+size_t file_size = 0;
+char *buffer = NULL;
 
-    raw = original;
+void __exit(int status) {
+	if(working_file) {
+		free(working_file);
+	}
 
-    // Disable canonical mode and echo.
-    raw.c_lflag &= ~(ICANON | ECHO);
-
-    // Configure minimum input requirements.
-    raw.c_cc[VMIN] = 1;
-    raw.c_cc[VTIME] = 0;
-
-	raw.c_lflag &= ~(ICANON | ECHO | ISIG | IEXTEN);
-
-	raw.c_iflag &= ~(IXON | ICRNL);
-
-	raw.c_oflag &= ~(OPOST);
-
-	raw.c_cflag |= CS8;
-
-    tcsetattr(STDIN_FILENO, TCSAFLUSH, &raw);
-}
-
-void disable_raw_mode() {
-    tcsetattr(STDIN_FILENO, TCSAFLUSH, &original);
+	_exit(status);
 }
 
 void parse_escape(char *input) {
 	if(*input == 0) {
 		disable_raw_mode();
 		Render__clear_screen();
-		_exit(0);
+		__exit(0);
 	}
 
 	if(*input == '[') {
+
 		switch(input[1]) {
 			case 'A':
-				Render__putstring("\033[1A");
+
+				if(row > MAX_ROWS) {
+					Render__blank_screen();
+					row = Render__putunix(working_file, file_size, buffer, 512, row - 1 - MAX_ROWS, row - 1);
+				} else if(row > 0) {
+					row -= 1;
+					Render__putstring("\033[1A");
+				}
+
 				break;
 			case 'B':
-				Render__putstring("\033[1B");
+				if(row < MAX_ROWS) {
+					Render__putstring("\033[1B");
+					row += 1;
+				} else {
+					Render__blank_screen();
+					row = Render__putunix(working_file, file_size, buffer, 512, row + 1 - MAX_ROWS, row + 2) - 1;
+				}
+				
 				break;
 			case 'C':
 				Render__putstring("\033[1C");
 				break;
 			case 'D':
 				Render__putstring("\033[1D");
+				break;
+			case '2':
+				// paste_handler(input + 5);
 				break;
 			case '3':
 				Render__putstring(Input__delete);
@@ -74,11 +79,21 @@ void parse_escape(char *input) {
 
 }
 
-int main() {
+int main(int argc, char **argv) {
 	enable_raw_mode();
-	Render__start_screen();
+	Render__blank_screen();
 
 	char input[10];
+
+	buffer = malloc(512);
+
+	if(argc > 1) {
+		file_size = File__get_size(argv[1]);
+		working_file = malloc(file_size);
+		File__read_file(argv[1], working_file);
+		row = Render__putunix(working_file, file_size, buffer, 512, 0, MAX_ROWS);
+		free(buffer);
+	}
 
 	while(1) {
 		ssize_t bytes_read = read(STDIN_FILENO, input, 10);
@@ -95,6 +110,9 @@ int main() {
 			case INPUT__BACKSPACE:
 				Render__putstring(Input__backspace);
 				break;
+
+			#ifdef DEBUG
+
 			case 3:
 				Render__putstring("\033[31mI should copy!\033[0m\r\n");
 				break;
@@ -104,6 +122,9 @@ int main() {
 			case 24:
 				Render__putstring("\033[31mI should cut!\033[0m\r\n");
 				break;
+
+			#endif
+
 			case '\r':
 			case '\n':
 				Render__putstring(Input__newline);
