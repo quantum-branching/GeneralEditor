@@ -50,7 +50,7 @@ static inline void Render__putchar(char character) {
 }
 
 void Render__clear_screen() {
-	Render__putstring("\033[0m\033[0;0H\033[2J\033[3J");
+	Render__putstring("\033[0m\033[0;0H\033[2J");
 }
 
 void Render__blank_screen() {
