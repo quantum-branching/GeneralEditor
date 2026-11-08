@@ -10,6 +10,7 @@
 
 int MAX_ROWS = 75;
 
+int top_row = 0;
 int row = 0;
 int column = 0;
 
@@ -36,10 +37,14 @@ void parse_escape(char *input) {
 
 		switch(input[1]) {
 			case 'A':
-
-				if(row > MAX_ROWS) {
+				if(row && row == top_row) {
 					Render__blank_screen();
-					row = Render__putunix(working_file, file_size, buffer, 512, row - 1 - MAX_ROWS, row - 1);
+					top_row = Render__putunix(working_file, file_size, buffer, 512, top_row - MAX_ROWS, top_row) - MAX_ROWS;
+
+					top_row = top_row > 0 ? top_row : (0 * Render__putunix(working_file, file_size, buffer, 512, 0, MAX_ROWS));
+
+					row = top_row + MAX_ROWS;
+					Render__putstring("\033[999H\033[1A");
 				} else if(row > 0) {
 					row -= 1;
 					Render__putstring("\033[1A");
@@ -47,14 +52,16 @@ void parse_escape(char *input) {
 
 				break;
 			case 'B':
-				if(row < MAX_ROWS) {
+				if(row < top_row + MAX_ROWS) {
 					Render__putstring("\033[1B");
 					row += 1;
 				} else {
 					Render__blank_screen();
-					row = Render__putunix(working_file, file_size, buffer, 512, row + 1 - MAX_ROWS, row + 2) - 1;
+					top_row = Render__putunix(working_file, file_size, buffer, 512, row, row + MAX_ROWS) - MAX_ROWS - 1;
+					row = top_row;
+					Render__putstring("\033[2H");
 				}
-				
+
 				break;
 			case 'C':
 				Render__putstring("\033[1C");
