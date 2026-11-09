@@ -3,10 +3,14 @@
 
 #include "Termios.c"
 #include "Input.h"
-#include "Render.c"
+#include "Renderer.c"
+#include "Highlighter.c"
 #include "File.c"
 
 // #define DEBUG
+
+#define new_buffer(type, size) ((type) {malloc(size), size})
+#define free_buffer(loc) (free(loc.buffer))
 
 int MAX_ROWS = 75;
 
@@ -18,10 +22,15 @@ char *working_file = NULL;
 size_t file_size = 0;
 char *buffer = NULL;
 
+Renderer renderer = (Renderer) {0, 0};
+Highlighter highlighter = (Highlighter) {0, 0};
+
 void __exit(int status) {
 	if(working_file) {
 		free(working_file);
 	}
+
+	free_buffer(renderer);
 
 	_exit(status);
 }
@@ -39,9 +48,9 @@ void parse_escape(char *input) {
 			case 'A':
 				if(row && row == top_row) {
 					Render__blank_screen();
-					top_row = Render__putunix(working_file, file_size, buffer, 512, top_row - MAX_ROWS, top_row) - MAX_ROWS;
+					top_row = Render__putunix(working_file, file_size, &renderer, &highlighter, top_row - MAX_ROWS, top_row) - MAX_ROWS;
 
-					top_row = top_row > 0 ? top_row : (0 * Render__putunix(working_file, file_size, buffer, 512, 0, MAX_ROWS));
+					top_row = top_row > 0 ? top_row : (0 * Render__putunix(working_file, file_size, &renderer, &highlighter, 0, MAX_ROWS));
 
 					row = top_row + MAX_ROWS;
 					Render__putstring("\033[999H\033[1A");
@@ -57,7 +66,7 @@ void parse_escape(char *input) {
 					row += 1;
 				} else {
 					Render__blank_screen();
-					top_row = Render__putunix(working_file, file_size, buffer, 512, row, row + MAX_ROWS) - MAX_ROWS - 1;
+					top_row = Render__putunix(working_file, file_size, &renderer, &highlighter, row, row + MAX_ROWS) - MAX_ROWS - 1;
 					row = top_row;
 					Render__putstring("\033[2H");
 				}
@@ -92,7 +101,6 @@ int main(int argc, char **argv) {
 	Render__blank_screen();
 
 	char input[10];
-	buffer = malloc(512);
 
 	struct winsize w;
 	if (ioctl(STDOUT_FILENO, TIOCGWINSZ, &w) == -1) {
@@ -100,14 +108,16 @@ int main(int argc, char **argv) {
 		return 1;
 	}
 
+	renderer = new_buffer(Renderer, 512);
+	highlighter = new_buffer(Highlighter, 1024);
+
 	MAX_ROWS = w.ws_row - 3;
 
 	if(argc > 1) {
 		file_size = File__get_size(argv[1]);
 		working_file = malloc(file_size);
 		File__read_file(argv[1], working_file);
-		row = Render__putunix(working_file, file_size, buffer, 512, 0, MAX_ROWS);
-		free(buffer);
+		row = Render__putunix(working_file, file_size, &renderer, &highlighter, 0, MAX_ROWS);
 	}
 
 	while(1) {
