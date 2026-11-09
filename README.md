@@ -10,4 +10,6 @@ This project is for people who like the shortcuts found in modern day applicatio
 
 Closing the program: Press the ESC key to close the program
 
-***Note:** This editor contains a lot of platform specific code, will not compile correctly on non-Unix systems, and is only tested on Debian 13 Linux*
+### Disclosers
+
+*This editor contains a lot of platform specific code, will not compile correctly on non-Unix systems, and is only tested on Debian 13 Linux*
