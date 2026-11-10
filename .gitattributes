@@ -1,0 +1,3 @@
+*.sh linguist-documentation
+*.bat linguist-documentation
+makefile linguist-documentation

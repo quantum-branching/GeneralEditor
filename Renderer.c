@@ -65,5 +65,5 @@ void Render__clear_screen() {
 
 void Render__blank_screen() {
 	Render__clear_screen();
-	Render__putstring("\033[47m\033[30m     Quantum's Little Text Editor\033[K\033[0m\r\n");
+	Render__putstring("\033[39m\033[47m\033[30m     Quantum's Little Text Editor\033[K\033[0m\r\n");
 }
