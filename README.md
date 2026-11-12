@@ -1,6 +1,6 @@
-# Quantum's Stupid Little Editor
+# Quantix
 
-This is very experimental. So I wouldn't expect much yet.
+This is a very experimental text editor. So I wouldn't expect much yet.
 
 ### Who is it for
 
