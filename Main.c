@@ -109,7 +109,7 @@ int main(int argc, char **argv) {
 	}
 
 	renderer = new_buffer(Renderer, 512);
-	highlighter = new_buffer(Highlighter, 1024);
+	highlighter = Highlighter__new(1024);
 
 	MAX_ROWS = w.ws_row - 3;
 

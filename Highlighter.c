@@ -18,28 +18,38 @@ char preproc_color[COLOR_SIZE] = "\033[91m";
 char comment_color[COLOR_SIZE] = "\033[90m";
 char reset_color[COLOR_SIZE] = "\033[39m";
 
+typedef char bool;
+
 typedef struct {
 	char *buffer;
 	size_t buffer_size;
+
+	bool in_string: 1;
+	bool using_color: 1;
+	bool escaped: 1;
+	bool until_newline: 1;
 } Highlighter;
 
-typedef char bool;
+static inline Highlighter Highlighter__new(size_t buffer_size) {
+	char *buffer = malloc(buffer_size);
+	return (Highlighter) {buffer, buffer_size}; 
+}
 
-void Highlighter__print_highlighted(Highlighter *highligher, char *str, size_t str_len) {
+void Highlighter__print_highlighted(Highlighter *highlighter, char *str, size_t str_len) {
 
-	#define add_char() highligher->buffer[buffer_used++] = str[string_loc]
+	#define add_char() highlighter->buffer[buffer_used++] = str[string_loc]
 
 	size_t buffer_used = 0;
-	size_t buffer_size = highligher->buffer_size;
+	size_t buffer_size = highlighter->buffer_size;
 
-	bool in_string = false;
-	bool using_color = false;
-	bool escaped = false;
-	bool until_newline = false;
+	bool in_string = highlighter->in_string;
+	bool using_color = highlighter->using_color;
+	bool escaped = highlighter->escaped;
+	bool until_newline = highlighter->until_newline;
 
 	for (size_t string_loc = 0; string_loc < str_len; string_loc++) {
 		if(buffer_used + COLOR_SIZE + 1 >= buffer_size) {
-			write(STDOUT_FILENO, highligher->buffer, buffer_used);
+			write(STDOUT_FILENO, highlighter->buffer, buffer_used);
 			buffer_used = 0;
 		}
 		
@@ -48,7 +58,7 @@ void Highlighter__print_highlighted(Highlighter *highligher, char *str, size_t s
 
 			if(str[string_loc] == '\"' || str[string_loc] == '\'') {
 				in_string = false;
-				strncpy(highligher->buffer + buffer_used, reset_color, COLOR_SIZE);
+				strncpy(highlighter->buffer + buffer_used, reset_color, COLOR_SIZE);
 				buffer_used += COLOR_SIZE;
 			}
 
@@ -64,7 +74,7 @@ void Highlighter__print_highlighted(Highlighter *highligher, char *str, size_t s
 		if(until_newline) {
 			if(str[string_loc] == '\n') {
 				until_newline = false;
-				strncpy(highligher->buffer + buffer_used, reset_color, COLOR_SIZE);
+				strncpy(highlighter->buffer + buffer_used, reset_color, COLOR_SIZE);
 				buffer_used += COLOR_SIZE;
 			}
 
@@ -74,13 +84,13 @@ void Highlighter__print_highlighted(Highlighter *highligher, char *str, size_t s
 
 		switch(str[string_loc]) {
 			case '/':
-				strncpy(highligher->buffer + buffer_used, comment_color, COLOR_SIZE);
+				strncpy(highlighter->buffer + buffer_used, comment_color, COLOR_SIZE);
 				buffer_used += COLOR_SIZE;
 				until_newline = true;
 				add_char();
 				break;
 			case '#':
-				strncpy(highligher->buffer + buffer_used, preproc_color, COLOR_SIZE);
+				strncpy(highlighter->buffer + buffer_used, preproc_color, COLOR_SIZE);
 				buffer_used += COLOR_SIZE;
 				until_newline = true;
 				add_char();
@@ -95,7 +105,7 @@ void Highlighter__print_highlighted(Highlighter *highligher, char *str, size_t s
 			case '\n':
 			case ' ':
 				if(using_color) {
-					strncpy(highligher->buffer + buffer_used, reset_color, COLOR_SIZE);
+					strncpy(highlighter->buffer + buffer_used, reset_color, COLOR_SIZE);
 					buffer_used += COLOR_SIZE;
 				}
 
@@ -104,7 +114,7 @@ void Highlighter__print_highlighted(Highlighter *highligher, char *str, size_t s
 				break;
 			case '\'':
 			case '\"':
-				strncpy(highligher->buffer + buffer_used, string_color, COLOR_SIZE);
+				strncpy(highlighter->buffer + buffer_used, string_color, COLOR_SIZE);
 				buffer_used += COLOR_SIZE;
 				add_char();
 
@@ -120,7 +130,7 @@ void Highlighter__print_highlighted(Highlighter *highligher, char *str, size_t s
 			case '7':
 			case '8':
 			case '9':
-				strncpy(highligher->buffer + buffer_used, nums_color, COLOR_SIZE);
+				strncpy(highlighter->buffer + buffer_used, nums_color, COLOR_SIZE);
 				buffer_used += COLOR_SIZE;
 				using_color = true;
 				add_char();
@@ -134,10 +144,14 @@ void Highlighter__print_highlighted(Highlighter *highligher, char *str, size_t s
 				break;
 		}
 
+		highlighter->in_string = in_string;
+		highlighter->using_color = using_color;
+		highlighter->escaped = escaped;
+		highlighter->until_newline = until_newline;
 	}
 
 	if(buffer_used) {
-		write(STDOUT_FILENO, highligher->buffer, buffer_used);
+		write(STDOUT_FILENO, highlighter->buffer, buffer_used);
 	}
 
 	#undef add_char
