@@ -1,6 +1,5 @@
 #include <stdio.h>
 
-#include "Termios.c"
 #include "Input.h"
 #include "Renderer.c"
 #include "Highlighter.c"
@@ -9,25 +8,25 @@
 // #define DEBUG
 
 #ifdef _WIN32
-	#include <windows.h>
+	#include "WindowsAPI.c"
 
 	static inline int get_terminal_height() {
 		CONSOLE_SCREEN_BUFFER_INFO csbi;
 		HANDLE hStdout = GetStdHandle(STD_OUTPUT_HANDLE);
 
-	    if (hStdout == INVALID_HANDLE_VALUE) {
+		if (hStdout == INVALID_HANDLE_VALUE) {
 			return -1;
-	    }
+		}
 	
 		if (!GetConsoleScreenBufferInfo(hStdout, &csbi)) {
 			return -1;
 		}
 		
-		// Calculate visible window height in rows
 		return csbi.srWindow.Bottom - csbi.srWindow.Top + 1;
 	}
 #else
-    #include <sys/ioctl.h>
+    	#include <sys/ioctl.h>
+	#include "Termios.c"
 
 	static inline int get_terminal_height() {
 		struct winsize w;
