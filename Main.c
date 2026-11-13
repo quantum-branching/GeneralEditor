@@ -1,5 +1,4 @@
 #include <stdio.h>
-#include <sys/ioctl.h>
 
 #include "Termios.c"
 #include "Input.h"
@@ -8,6 +7,39 @@
 #include "File.c"
 
 // #define DEBUG
+
+#ifdef _WIN32
+	#include <windows.h>
+
+	static inline int get_terminal_height() {
+		CONSOLE_SCREEN_BUFFER_INFO csbi;
+		HANDLE hStdout = GetStdHandle(STD_OUTPUT_HANDLE);
+
+	    if (hStdout == INVALID_HANDLE_VALUE) {
+			return -1;
+	    }
+	
+		if (!GetConsoleScreenBufferInfo(hStdout, &csbi)) {
+			return -1;
+		}
+		
+		// Calculate visible window height in rows
+		return csbi.srWindow.Bottom - csbi.srWindow.Top + 1;
+	}
+#else
+    #include <sys/ioctl.h>
+
+	static inline int get_terminal_height() {
+		struct winsize w;
+		
+		if (ioctl(STDOUT_FILENO, TIOCGWINSZ, &w) == -1) {
+			perror("ioctl");
+			return 1;
+		}
+		
+		return w.ws_row;
+	}
+#endif
 
 #define new_buffer(type, size) ((type) {malloc(size), size})
 #define free_buffer(loc) (free(loc.buffer))
@@ -102,16 +134,10 @@ int main(int argc, char **argv) {
 
 	char input[10];
 
-	struct winsize w;
-	if (ioctl(STDOUT_FILENO, TIOCGWINSZ, &w) == -1) {
-		perror("ioctl");
-		return 1;
-	}
-
 	renderer = new_buffer(Renderer, 512);
 	highlighter = Highlighter__new(1024);
 
-	MAX_ROWS = w.ws_row - 3;
+	MAX_ROWS = get_terminal_height() - 3;
 
 	if(argc > 1) {
 		file_size = File__get_size(argv[1]);
